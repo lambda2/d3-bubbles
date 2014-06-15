@@ -127,16 +127,18 @@
 
     // Update.. (must be above enter)
     updatedNodes.selectAll("circle")
+      .transition()
       .attr("cx", function(d) { return $.grep(nodes, function(e){ return e.className == d.className; })[0].x; })
       .attr("cy", function(d) { return $.grep(nodes, function(e){ return e.className == d.className; })[0].y; })
-      .transition()
       .attr("r", function(d)  { return $.grep(nodes, function(e){ return e.className == d.className; })[0].r; })
       .style("fill", function(d) { return d3.rgb((d.red * 255) / 100, (d.green * 255) / 100, 50); })
 
     updatedNodes.selectAll("text")
+      .transition()
       .attr("x", function(d) { return $.grep(nodes, function(e){ return e.className == d.className; })[0].x; })
       .attr("y", function(d) { return $.grep(nodes, function(e){ return e.className == d.className; })[0].y; })
-      .style("text-anchor", "middle");
+      .style("text-anchor", "middle")
+      .text(function(d) { e = $.grep(nodes, function(e){ return e.className == d.className; })[0] ; return e.className.substring(0, e.value / 3); });
 
     var createdNodes = updatedNodes.enter();
     var exitedNodes = updatedNodes.exit();
@@ -155,10 +157,9 @@
       .attr("r", function(d) { return d.r; })
       .style("fill", function(d) { return d3.rgb((d.red * 255) / 100, (d.green * 255) / 100, 50); });
     createdNodes.append("text")
+      .style("text-anchor", "middle")
       .attr("x", function(d) { return d.x; })
       .attr("y", function(d) { return d.y; })
-//      .attr("dy", ".3em")
-      .style("text-anchor", "middle")
       .text(function(d) { return d.className.substring(0, d.value / 3); });
     createdNodes.append("title")
       .text(function(d) { return d.className + ": " + format(d.value); });
