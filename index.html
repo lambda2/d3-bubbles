@@ -96,7 +96,6 @@
   format = d3.format(",d"),
   color = d3.scale.category20c();
 
-
   var svg = d3.select("body").append("svg")
     .attr("width", diameter)
     .attr("height", diameter)
@@ -112,7 +111,10 @@
 
   function loadData(root)
   {
+    $("textarea").html(JSON.stringify(root));
+
     var nodes = pack.nodes(classes(root)).filter(function(d) { return !d.children; });
+    var transition_time = 1000;
 
     console.log("========> nodes");
     console.log(nodes);
@@ -128,13 +130,15 @@
     // Update.. (must be above enter)
     updatedNodes.selectAll("circle")
       .transition()
+      .duration(transition_time)
       .attr("cx", function(d) { return $.grep(nodes, function(e){ return e.className == d.className; })[0].x; })
       .attr("cy", function(d) { return $.grep(nodes, function(e){ return e.className == d.className; })[0].y; })
       .attr("r", function(d)  { return $.grep(nodes, function(e){ return e.className == d.className; })[0].r; })
-      .style("fill", function(d) { return d3.rgb((d.red * 255) / 100, (d.green * 255) / 100, 50); });
+      .style("fill", function(d) { e = $.grep(nodes, function(e){ return e.className == d.className; })[0]; return d3.rgb((e.red * 255) / 100, (e.green * 255) / 100, 50); });
 
     updatedNodes.selectAll("text")
       .transition()
+      .duration(transition_time)
       .attr("x", function(d) { return $.grep(nodes, function(e){ return e.className == d.className; })[0].x; })
       .attr("y", function(d) { return $.grep(nodes, function(e){ return e.className == d.className; })[0].y; })
       .text(function(d) { e = $.grep(nodes, function(e){ return e.className == d.className; })[0] ; return e.className.substring(0, e.value / 3); });
@@ -154,6 +158,7 @@
       .attr("cy", function(d) { return d.y; })
       .style("fill", function(d) {   return d3.rgb(150, 150, 150); })
       .transition()
+      .duration(transition_time)
       .attr("r", function(d) { return d.r; })
       .style("fill", function(d) { return d3.rgb((d.red * 255) / 100, (d.green * 255) / 100, 50); });
     createdNodes.append("text")
@@ -166,6 +171,10 @@
 
     // Remove
     exitedNodes
+      .style("opacity", 1)
+      .transition()
+      .duration(transition_time)
+      .style("opacity", 0)
       .remove();
 
 
@@ -216,6 +225,19 @@
     d3.select(self.frameElement).style("height", diameter + "px");
   }
   loadData(data_one);
+
+
+  $(function() {
+      $("textarea").css("left", diameter + "px");
+      $("textarea").html(JSON.stringify(data_one));
+  });
+
+  function prepareLoadData()
+  {
+    console.log($("textarea").val());
+    console.log(JSON.parse($("textarea").val()));
+    loadData(JSON.parse($("textarea").val()));
+  }
   </script>
 
   <div id="top-bar">
@@ -225,7 +247,9 @@
       <div id="buttons">
         <button id="data_one" onClick="loadData(data_one)">Set 1</button>
         <button id="data_two" onClick="loadData(data_two)">Set 2</button>
+        <button id="data_three" onClick="prepareLoadData()">Dynamic</button>
       </div>
+      <textarea style="width: 300px; height: 300px; position: absolute"></textarea>
   </div>
 
 </body>
