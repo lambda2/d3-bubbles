@@ -131,8 +131,12 @@
       .attr("cy", function(d) { return $.grep(nodes, function(e){ return e.className == d.className; })[0].y; })
       .transition()
       .attr("r", function(d)  { return $.grep(nodes, function(e){ return e.className == d.className; })[0].r; })
-      .style("fill", function(d) { return d3.rgb((d.red * 255) / 100, (d.green * 255) / 100, 50); });
+      .style("fill", function(d) { return d3.rgb((d.red * 255) / 100, (d.green * 255) / 100, 50); })
 
+    updatedNodes.selectAll("text")
+      .attr("x", function(d) { return $.grep(nodes, function(e){ return e.className == d.className; })[0].x; })
+      .attr("y", function(d) { return $.grep(nodes, function(e){ return e.className == d.className; })[0].y; })
+      .style("text-anchor", "middle");
 
     var createdNodes = updatedNodes.enter();
     var exitedNodes = updatedNodes.exit();
