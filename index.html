@@ -2,6 +2,7 @@
 
 <head>
 <script src="http://d3js.org/d3.v3.min.js" charset="utf-8"></script>
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/1/jquery.min.js"></script>
 
 <style>
   #top-bar
@@ -91,62 +92,107 @@
     ]
   };
 
-  var diameter = 960,
+  var diameter = window.innerHeight,
   format = d3.format(",d"),
   color = d3.scale.category20c();
 
-
   var svg = d3.select("body").append("svg")
-  .attr("width", diameter)
-  .attr("height", diameter)
-  .attr("class", "bubble");
-      var bubble = d3.layout.pack()
-      .sort(null)
-      .size([diameter, diameter])
-      .padding(1.5);
+    .attr("width", diameter)
+    .attr("height", diameter)
+    .attr("class", "bubble");
+
+  var pack = d3.layout.pack()
+    .sort(null)
+    .size([diameter, diameter])
+    .value(function(d) { return d.value; })
+    .padding(5);
 
   function inspect(e) { console.warn("Inspection: ", e); return e;}
 
   function loadData(root)
   {
+    $("textarea").html(JSON.stringify(root));
 
-    var node = svg.selectAll(".node")
-    .data(bubble.nodes(classes(root))
-    .filter(function(d) {
-      console.log("[filter] => ", d);
-      return !d.children; }), function(d){ return d.className; })
-    .enter().append("g")
-    .attr("class", "node")
-    .attr("transform", function(d) { return "translate(" + d.x + "," + d.y + ")"; });
+    var nodes = pack.nodes(classes(root)).filter(function(d) { return !d.children; });
+    var transition_time = 1000;
 
-    node.append("title")
-    .text(function(d) { return d.className + ": " + format(d.value); });
+    console.log("========> nodes");
+    console.log(nodes);
+    console.log("<========");
 
-    node.append("circle")
+    //root = classes(root);
+   // console.log(root.children);
+
+    var updatedNodes = svg.selectAll("g").data(nodes, function(d) { return d.className; });
+    console.log("==========> (update, enter, exit)");
+    console.log(updatedNodes.size());
+
+    // Update.. (must be above enter)
+    updatedNodes.selectAll("circle")
+      .transition()
+      .duration(transition_time)
+      .attr("cx", function(d) { return $.grep(nodes, function(e){ return e.className == d.className; })[0].x; })
+      .attr("cy", function(d) { return $.grep(nodes, function(e){ return e.className == d.className; })[0].y; })
+      .attr("r", function(d)  { return $.grep(nodes, function(e){ return e.className == d.className; })[0].r; })
+      .style("fill", function(d) { e = $.grep(nodes, function(e){ return e.className == d.className; })[0]; return d3.rgb((e.red * 255) / 100, (e.green * 255) / 100, 50); });
+
+    updatedNodes.selectAll("text")
+      .transition()
+      .duration(transition_time)
+      .attr("x", function(d) { return $.grep(nodes, function(e){ return e.className == d.className; })[0].x; })
+      .attr("y", function(d) { return $.grep(nodes, function(e){ return e.className == d.className; })[0].y; })
+      .style("text-anchor", "middle")
+      .text(function(d) { e = $.grep(nodes, function(e){ return e.className == d.className; })[0] ; return e.className.substring(0, e.value / 3); });
+
+    var createdNodes = updatedNodes.enter();
+    var exitedNodes = updatedNodes.exit();
+
+    // Create
+    createdNodes = createdNodes.append("g");
+    createdNodes
+      .attr("class", function(d) { return d.className; })
+//      .attr("transform", function(d) { return "translate(" + d.x + "," + d.y + ")"; });
+    createdNodes.append("circle")
       .attr("r", 0)
-      .style("fill", function(d) {
-        console.log(d);
-        return d3.rgb(150, 150, 150);
-      }).transition()
-    .attr("r", function(d) { return d.r; })
-    .style("fill", function(d) {
-      console.log(d);
-      return d3.rgb((d.red * 255) / 100, (d.green * 255) / 100, 50);
-    });
+      .attr("cx", function(d) { return d.x; })
+      .attr("cy", function(d) { return d.y; })
+      .style("fill", function(d) {   return d3.rgb(150, 150, 150); })
+      .transition()
+      .duration(transition_time)
+      .attr("r", function(d) { return d.r; })
+      .style("fill", function(d) { return d3.rgb((d.red * 255) / 100, (d.green * 255) / 100, 50); });
+    createdNodes.append("text")
+      .style("text-anchor", "middle")
+      .attr("x", function(d) { return d.x; })
+      .attr("y", function(d) { return d.y; })
+      .text(function(d) { return d.className.substring(0, d.value / 3); });
+    createdNodes.append("title")
+      .text(function(d) { return d.className + ": " + format(d.value); });
 
-    node.append("text")
-    .attr("dy", ".3em")
-    .style("text-anchor", "middle")
-    .text(function(d) { return d.className.substring(0, d.r / 3); });
+    // Remove
+    exitedNodes
+      .style("opacity", 1)
+      .transition()
+      .duration(transition_time)
+      .style("opacity", 0)
+      .remove();
 
-    node.on("hover", function(a, b,c )
+
+    console.log(createdNodes.size());
+    console.log(exitedNodes.size());
+    console.log("<==========");
+
+
+    // Osef
+    createdNodes.on("hover", function(a, b, c)
     {
       a.transition().style("fill", function(d) {
         console.log(d);
         return d3.rgb(150, 150, 150);
       });
     });
-    node.on("click", function(a, b,c )
+
+    createdNodes.on("click", function(a, b, c)
     {
       console.log("click", a, b, c);
       var elt = document.getElementById("data-content");
@@ -158,7 +204,6 @@
       var classes = [];
 
       function recurse(name, node) {
-        console.log("Calling recurse on ", name, node);
         if (node.children) node.children.forEach(function(child) { recurse(node.name, child); });
         else classes.push({
           packageName: node.name,
@@ -166,7 +211,10 @@
           value: node.length,
           progress: node.progress,
           green: node.progress,
-          red: 100 - node.progress
+          red: 100 - node.progress,
+        /*  r: node.length / 2,
+          x: node.length / 2,
+          y: node.length / 2,*/
         });
       }
 
@@ -177,6 +225,19 @@
     d3.select(self.frameElement).style("height", diameter + "px");
   }
   loadData(data_one);
+
+
+  $(function() {
+      $("textarea").css("left", diameter + "px");
+      $("textarea").html(JSON.stringify(data_one));
+  });
+
+  function prepareLoadData()
+  {
+    console.log($("textarea").val());
+    console.log(JSON.parse($("textarea").val()));
+    loadData(JSON.parse($("textarea").val()));
+  }
   </script>
 
   <div id="top-bar">
@@ -186,7 +247,9 @@
       <div id="buttons">
         <button id="data_one" onClick="loadData(data_one)">Set 1</button>
         <button id="data_two" onClick="loadData(data_two)">Set 2</button>
+        <button id="data_three" onClick="prepareLoadData()">Dynamic</button>
       </div>
+      <textarea style="width: 300px; height: 300px; position: absolute"></textarea>
   </div>
 
 </body>
